@@ -6,6 +6,94 @@ Pure Rust implementation of [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) aut
 
 Supports two backends: **libtorch** (via the `tch` crate, cross-platform with optional CUDA) and **MLX** (Apple Silicon native via Metal GPU). Loads model weights directly from safetensors files and re-implements the complete neural network forward pass in Rust.
 
+## Quick Start
+
+### 1. Download the binary
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/second-state/qwen3_asr_rs/releases/latest) and extract:
+
+**macOS (Apple Silicon)**
+
+```bash
+curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-macos-aarch64.zip
+unzip asr-macos-aarch64.zip
+# Contains: asr-macos-aarch64/asr and asr-macos-aarch64/mlx.metallib
+```
+
+**Linux x86_64 (CPU)**
+
+```bash
+curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64.zip
+unzip asr-linux-x86_64.zip
+# Contains: asr-linux-x86_64/asr
+```
+
+**Linux x86_64 (CUDA)**
+
+```bash
+curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64-cuda.zip
+unzip asr-linux-x86_64-cuda.zip
+# Contains: asr-linux-x86_64-cuda/asr
+```
+
+**Linux ARM64**
+
+```bash
+curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-aarch64.zip
+unzip asr-linux-aarch64.zip
+# Contains: asr-linux-aarch64/asr
+```
+
+### 2. Download libtorch (Linux only)
+
+macOS uses the MLX backend and does not need libtorch.
+
+```bash
+# Linux x86_64 (CPU)
+curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip
+unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cpu.zip
+
+# Linux x86_64 (CUDA 12.8)
+curl -LO https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip
+unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cu128.zip
+
+# Linux ARM64
+curl -LO https://github.com/second-state/libtorch-releases/releases/download/v2.7.1/libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
+tar xzf libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
+```
+
+### 3. Download model weights
+
+```bash
+pip install huggingface_hub transformers
+
+huggingface-cli download Qwen/Qwen3-ASR-0.6B --local-dir Qwen3-ASR-0.6B
+
+python -c "
+from transformers import AutoTokenizer
+tok = AutoTokenizer.from_pretrained('Qwen3-ASR-0.6B', trust_remote_code=True)
+tok.backend_tokenizer.save('Qwen3-ASR-0.6B/tokenizer.json')
+"
+```
+
+### 4. Transcribe
+
+```bash
+# macOS (MLX backend — no extra env needed)
+./asr-macos-aarch64/asr Qwen3-ASR-0.6B input.wav
+
+# Linux
+LD_LIBRARY_PATH=$(pwd)/libtorch/lib:$LD_LIBRARY_PATH \
+  ./asr-linux-x86_64/asr Qwen3-ASR-0.6B input.wav
+```
+
+Output:
+
+```
+Language: English
+Text: Thank you for your contribution to the most recent issue of Computer.
+```
+
 ## Architecture
 
 The implementation ports the Qwen3-ASR encoder-decoder architecture from PyTorch/Transformers to Rust with libtorch (via the `tch` crate):
@@ -21,7 +109,32 @@ The implementation ports the Qwen3-ASR encoder-decoder architecture from PyTorch
 | Qwen3-ASR-0.6B | 0.6B | [Qwen/Qwen3-ASR-0.6B](https://huggingface.co/Qwen/Qwen3-ASR-0.6B) |
 | Qwen3-ASR-1.7B | 1.7B | [Qwen/Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) |
 
-## Prerequisites
+## Usage
+
+```bash
+# Basic transcription (auto-detect language)
+asr ./Qwen3-ASR-0.6B input.wav
+
+# Force language
+asr ./Qwen3-ASR-0.6B input.wav chinese
+asr ./Qwen3-ASR-0.6B input.wav english
+
+# Enable debug logging
+RUST_LOG=debug asr ./Qwen3-ASR-0.6B input.wav
+```
+
+### Output Format
+
+```
+Language: Chinese
+Text: 你好世界
+```
+
+## Supported Languages
+
+Qwen3-ASR supports 30 languages: Chinese, English, Cantonese, Arabic, German, French, Spanish, Portuguese, Indonesian, Italian, Korean, Russian, Thai, Vietnamese, Japanese, Turkish, Hindi, Malay, Dutch, Swedish, Danish, Finnish, Polish, Czech, Filipino, Persian, Greek, Romanian, Hungarian, Macedonian.
+
+## Build from Source
 
 ### Backend
 
@@ -32,31 +145,11 @@ Choose one backend:
 | libtorch | `tch-backend` (default) | Linux, macOS, Windows | CUDA |
 | MLX | `mlx` | macOS Apple Silicon | Metal |
 
-### libtorch (for `tch-backend`)
+### Prerequisites
 
-The `tch` crate (v0.20) requires **libtorch 2.7.1**. Download and extract for your platform:
+**libtorch** (for `tch-backend`): See [Step 2](#2-download-libtorch-linux-only) above for download links.
 
-```bash
-# macOS (Apple Silicon)
-curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.7.1.zip
-unzip libtorch-macos-arm64-2.7.1.zip
-
-# Linux x86_64 (CPU)
-curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cpu.zip
-
-# Linux ARM64 (CPU)
-curl -LO https://github.com/second-state/libtorch-releases/releases/download/v2.7.1/libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-tar xzf libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-
-# Linux x86_64 (CUDA 12.8)
-curl -LO https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cu128.zip
-```
-
-### FFmpeg
-
-Install FFmpeg development libraries:
+**FFmpeg** development libraries:
 
 ```bash
 # macOS
@@ -65,30 +158,6 @@ brew install ffmpeg
 # Ubuntu/Debian
 sudo apt-get install libavcodec-dev libavformat-dev libavutil-dev libswresample-dev pkg-config
 ```
-
-### Model Weights
-
-Download a model from HuggingFace:
-
-```bash
-# 0.6B model
-huggingface-cli download Qwen/Qwen3-ASR-0.6B --local-dir Qwen3-ASR-0.6B
-
-# 1.7B model (sharded safetensors, auto-detected)
-huggingface-cli download Qwen/Qwen3-ASR-1.7B --local-dir Qwen3-ASR-1.7B
-```
-
-Generate `tokenizer.json` (required):
-
-```bash
-python -c "
-from transformers import AutoTokenizer
-tok = AutoTokenizer.from_pretrained('Qwen3-ASR-0.6B', trust_remote_code=True)
-tok.backend_tokenizer.save('Qwen3-ASR-0.6B/tokenizer.json')
-"
-```
-
-## Build
 
 ### libtorch backend (default)
 
@@ -121,40 +190,6 @@ cargo build --release --no-default-features --features mlx
 # With statically linked FFmpeg
 cargo build --release --no-default-features --features mlx,static-ffmpeg
 ```
-
-## Usage
-
-```bash
-# Basic transcription (auto-detect language)
-asr ./Qwen3-ASR-0.6B input.wav
-
-# Force language
-asr ./Qwen3-ASR-0.6B input.wav chinese
-asr ./Qwen3-ASR-0.6B input.wav english
-
-# Any audio format (FFmpeg handles conversion)
-asr ./Qwen3-ASR-0.6B input.mp3
-asr ./Qwen3-ASR-0.6B input.flac
-asr ./Qwen3-ASR-0.6B input.m4a
-
-# Enable debug logging
-RUST_LOG=debug asr ./Qwen3-ASR-0.6B input.wav
-```
-
-### Input Audio Requirements
-
-The `asr` binary accepts **any audio format** supported by FFmpeg. The audio is automatically converted to mono 16 kHz f32 for the model's mel spectrogram computation.
-
-### Output Format
-
-```
-Language: Chinese
-Text: 你好世界
-```
-
-## Supported Languages
-
-Qwen3-ASR supports 30 languages: Chinese, English, Cantonese, Arabic, German, French, Spanish, Portuguese, Indonesian, Italian, Korean, Russian, Thai, Vietnamese, Japanese, Turkish, Hindi, Malay, Dutch, Swedish, Danish, Finnish, Polish, Czech, Filipino, Persian, Greek, Romanian, Hungarian, Macedonian.
 
 ## Project Structure
 
