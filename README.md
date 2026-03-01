@@ -8,16 +8,16 @@ Supports two backends: **libtorch** (via the `tch` crate, cross-platform with op
 
 ## Quick Start
 
-### 1. Download the binary
+### 1. Download the release
 
-Download the latest release for your platform from [GitHub Releases](https://github.com/second-state/qwen3_asr_rs/releases/latest) and extract:
+Download the latest release for your platform from [GitHub Releases](https://github.com/second-state/qwen3_asr_rs/releases/latest) and extract. Each zip contains the `asr` binary and all required runtime dependencies (libtorch for Linux, mlx.metallib for macOS).
 
 **macOS (Apple Silicon)**
 
 ```bash
 curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-macos-aarch64.zip
 unzip asr-macos-aarch64.zip
-# Contains: asr-macos-aarch64/asr and asr-macos-aarch64/mlx.metallib
+# Contains: asr-macos-aarch64/asr, asr-macos-aarch64/mlx.metallib
 ```
 
 **Linux x86_64 (CPU)**
@@ -25,7 +25,7 @@ unzip asr-macos-aarch64.zip
 ```bash
 curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64.zip
 unzip asr-linux-x86_64.zip
-# Contains: asr-linux-x86_64/asr
+# Contains: asr-linux-x86_64/asr, asr-linux-x86_64/libtorch/
 ```
 
 **Linux x86_64 (CUDA)**
@@ -33,7 +33,7 @@ unzip asr-linux-x86_64.zip
 ```bash
 curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64-cuda.zip
 unzip asr-linux-x86_64-cuda.zip
-# Contains: asr-linux-x86_64-cuda/asr
+# Contains: asr-linux-x86_64-cuda/asr, asr-linux-x86_64-cuda/libtorch/
 ```
 
 **Linux ARM64**
@@ -41,34 +41,10 @@ unzip asr-linux-x86_64-cuda.zip
 ```bash
 curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-aarch64.zip
 unzip asr-linux-aarch64.zip
-# Contains: asr-linux-aarch64/asr
+# Contains: asr-linux-aarch64/asr, asr-linux-aarch64/libtorch/
 ```
 
-### 2. Download libtorch (Linux only)
-
-macOS uses the MLX backend and does not need libtorch.
-
-Download and extract libtorch into the same directory as the `asr` binary (the binary has an embedded rpath to find `libtorch/lib` relative to itself):
-
-```bash
-cd asr-linux-x86_64  # or asr-linux-x86_64-cuda, asr-linux-aarch64
-
-# Linux x86_64 (CPU)
-curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cpu.zip
-
-# Linux x86_64 (CUDA 12.8)
-curl -LO https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cu128.zip
-
-# Linux ARM64
-curl -LO https://github.com/second-state/libtorch-releases/releases/download/v2.7.1/libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-tar xzf libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-
-cd ..
-```
-
-### 3. Download model weights
+### 2. Download model weights
 
 ```bash
 pip install huggingface_hub transformers
@@ -82,7 +58,7 @@ tok.backend_tokenizer.save('Qwen3-ASR-0.6B/tokenizer.json')
 "
 ```
 
-### 4. Transcribe
+### 3. Transcribe
 
 ```bash
 # macOS
@@ -152,7 +128,7 @@ Choose one backend:
 
 ### Prerequisites
 
-**libtorch** (for `tch-backend`): See [Step 2](#2-download-libtorch-linux-only) above for download links.
+**libtorch** (for `tch-backend`): Download from [pytorch.org/get-started/locally](https://pytorch.org/get-started/locally/) (select LibTorch, C++/Java, your platform).
 
 **FFmpeg** development libraries:
 

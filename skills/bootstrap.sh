@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bootstrap script for Qwen3 ASR skill
-# Downloads platform-specific binary, libtorch (Linux only), and model
+# Downloads platform-specific release (binary + runtime deps) and model
 
 set -e
 
@@ -71,11 +71,11 @@ get_asset_name() {
     esac
 }
 
-download_binary() {
+download_release() {
     local asset_name="$1"
     local zip_name="${asset_name}.zip"
 
-    echo "=== Downloading binary (${asset_name}) ===" >&2
+    echo "=== Downloading release (${asset_name}) ===" >&2
 
     mkdir -p "${SCRIPTS_DIR}"
 
@@ -96,71 +96,26 @@ download_binary() {
     echo "Fetching from: ${download_url}" >&2
     curl -sL -o "${temp_dir}/${zip_name}" "$download_url"
 
-    echo "Extracting binary..." >&2
+    echo "Extracting release..." >&2
     unzip -q "${temp_dir}/${zip_name}" -d "${temp_dir}"
+
+    # Copy binary
     cp "${temp_dir}/${asset_name}/asr" "${SCRIPTS_DIR}/asr"
     chmod +x "${SCRIPTS_DIR}/asr"
+
     # Copy mlx.metallib if present (macOS MLX backend)
     if [ -f "${temp_dir}/${asset_name}/mlx.metallib" ]; then
         cp "${temp_dir}/${asset_name}/mlx.metallib" "${SCRIPTS_DIR}/mlx.metallib"
     fi
 
-    rm -rf "$temp_dir"
-    echo "Binary installed to ${SCRIPTS_DIR}/asr" >&2
-}
-
-download_libtorch() {
-    local platform="$1"
-    local asset_name="$2"
-
-    # macOS uses MLX backend — no libtorch needed
-    if [[ "$platform" == darwin-* ]]; then
-        echo "=== Skipping libtorch (macOS uses MLX backend) ===" >&2
-        return
+    # Copy libtorch if present (Linux tch backend)
+    if [ -d "${temp_dir}/${asset_name}/libtorch" ]; then
+        rm -rf "${SCRIPTS_DIR}/libtorch"
+        cp -r "${temp_dir}/${asset_name}/libtorch" "${SCRIPTS_DIR}/libtorch"
     fi
 
-    echo "=== Downloading libtorch ===" >&2
-
-    local libtorch_url=""
-    local archive_name=""
-
-    case "$asset_name" in
-    asr-linux-x86_64)
-        libtorch_url="https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip"
-        archive_name="libtorch.zip"
-        ;;
-    asr-linux-x86_64-cuda)
-        libtorch_url="https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip"
-        archive_name="libtorch.zip"
-        ;;
-    asr-linux-aarch64)
-        libtorch_url="https://github.com/second-state/libtorch-releases/releases/download/v2.7.1/libtorch-cxx11-abi-aarch64-2.7.1.tar.gz"
-        archive_name="libtorch.tar.gz"
-        ;;
-    *)
-        echo "Error: No libtorch URL for asset ${asset_name}" >&2
-        exit 1
-        ;;
-    esac
-
-    local temp_dir
-    temp_dir=$(mktemp -d)
-
-    echo "Fetching from: ${libtorch_url}" >&2
-    curl -sL -o "${temp_dir}/${archive_name}" "$libtorch_url"
-
-    echo "Extracting libtorch..." >&2
-    if [[ "$archive_name" == *.zip ]]; then
-        unzip -q "${temp_dir}/${archive_name}" -d "${temp_dir}"
-    else
-        tar xzf "${temp_dir}/${archive_name}" -C "${temp_dir}"
-    fi
-
-    rm -rf "${SCRIPTS_DIR}/libtorch"
-    mv "${temp_dir}/libtorch" "${SCRIPTS_DIR}/libtorch"
-
     rm -rf "$temp_dir"
-    echo "libtorch installed to ${SCRIPTS_DIR}/libtorch" >&2
+    echo "Release installed to ${SCRIPTS_DIR}" >&2
 }
 
 download_models() {
@@ -207,8 +162,7 @@ main() {
     asset_name=$(get_asset_name "$platform")
     echo "Asset: ${asset_name}" >&2
 
-    download_binary "$asset_name"
-    download_libtorch "$platform" "$asset_name"
+    download_release "$asset_name"
     download_models
 
     echo "" >&2
