@@ -33,30 +33,12 @@ detect_platform() {
     echo "${os}-${arch}"
 }
 
-detect_cuda() {
-    # Check for NVIDIA GPU and CUDA toolkit
-    if command -v nvidia-smi &>/dev/null && nvidia-smi &>/dev/null; then
-        return 0
-    fi
-    if command -v nvcc &>/dev/null; then
-        return 0
-    fi
-    if [ -d "/usr/local/cuda" ]; then
-        return 0
-    fi
-    return 1
-}
-
 get_asset_name() {
     local platform="$1"
 
     case "$platform" in
     linux-x86_64)
-        if detect_cuda; then
-            echo "asr-linux-x86_64-cuda"
-        else
-            echo "asr-linux-x86_64"
-        fi
+        echo "asr-linux-x86_64"
         ;;
     linux-aarch64)
         echo "asr-linux-aarch64"
