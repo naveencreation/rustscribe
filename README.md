@@ -28,14 +28,6 @@ unzip asr-linux-x86_64.zip
 # Contains: asr-linux-x86_64/asr, asr-linux-x86_64/libtorch/
 ```
 
-**Linux x86_64 (CUDA)**
-
-```bash
-curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64-cuda.zip
-unzip asr-linux-x86_64-cuda.zip
-# Contains: asr-linux-x86_64-cuda/asr, asr-linux-x86_64-cuda/libtorch/
-```
-
 **Linux ARM64**
 
 ```bash
@@ -43,6 +35,8 @@ curl -LO https://github.com/second-state/qwen3_asr_rs/releases/latest/download/a
 unzip asr-linux-aarch64.zip
 # Contains: asr-linux-aarch64/asr, asr-linux-aarch64/libtorch/
 ```
+
+> **CUDA GPU**: Pre-built releases use CPU libtorch. For CUDA acceleration, download the [CUDA 12.8 libtorch](#libtorch-backend-default) and [build from source](#build-from-source).
 
 ### 2. Download model weights
 
