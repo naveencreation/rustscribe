@@ -7,9 +7,9 @@ Pure Rust implementation of [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) aut
 Supports two backends: **libtorch** (via the `tch` crate, cross-platform with optional CUDA) and **MLX** (Apple Silicon native via Metal GPU). Loads model weights directly from safetensors files and re-implements the complete neural network forward pass in Rust.
 
 Learn more:
-* [A Rust implementation / CLI for Qwen3's TTS (Text-to-Speech or speech synthesis) models](https://github.com/second-state/qwen3_tts_rs)
-* [An OpenAI compatible API server for audio / speech](https://github.com/second-state/qwen3_audio_api/tree/main/rust)
-* An OpenClaw SKILL for voice recognition. Tell your lobster to read this: https://raw.githubusercontent.com/second-state/qwen3_asr_rs/refs/heads/main/skills/install.md
+* [A Rust implementation / CLI](https://github.com/second-state/qwen3_tts_rs) for Qwen3's TTS (Text-to-Speech or speech synthesis) models
+* An OpenAI compatible [API server for audio / speech](https://github.com/second-state/qwen3_audio_api/tree/main/rust)
+* An OpenClaw SKILL for voice recognition. Copy and paste to your lobster to [install it](https://raw.githubusercontent.com/second-state/qwen3_asr_rs/refs/heads/main/skills/install.md)
 
 ## Quick Start
 
