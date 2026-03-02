@@ -320,7 +320,7 @@ pub fn softmax(a: &MlxArray, axes: &[i32]) -> MlxArray {
     let mut res = MlxArray::empty();
     unsafe {
         ffi::mlx_softmax_axes(
-            &mut res.ptr, a.ptr, axes.as_ptr(), axes.len(), false, default_stream(),
+            &mut res.ptr, a.ptr, axes.as_ptr(), axes.len(), true, default_stream(),
         );
     }
     res
