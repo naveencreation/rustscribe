@@ -96,6 +96,12 @@ download_release() {
         cp -r "${temp_dir}/${asset_name}/libtorch" "${SCRIPTS_DIR}/libtorch"
     fi
 
+    # Copy pre-built tokenizers from release assets
+    if [ -d "${temp_dir}/${asset_name}/tokenizers" ]; then
+        rm -rf "${SCRIPTS_DIR}/tokenizers"
+        cp -r "${temp_dir}/${asset_name}/tokenizers" "${SCRIPTS_DIR}/tokenizers"
+    fi
+
     rm -rf "$temp_dir"
     echo "Release installed to ${SCRIPTS_DIR}" >&2
 }
@@ -103,34 +109,39 @@ download_release() {
 download_models() {
     echo "=== Downloading models ===" >&2
 
-    mkdir -p "${MODELS_DIR}"
+    local model="Qwen3-ASR-0.6B"
+    local model_dir="${MODELS_DIR}/${model}"
+    local base_url="https://huggingface.co/Qwen/${model}/resolve/main"
 
-    # Ensure huggingface_hub and transformers are available
-    if ! command -v huggingface-cli &>/dev/null; then
-        echo "Installing huggingface_hub and transformers..." >&2
-        pip install -q huggingface_hub transformers
+    if [ -d "$model_dir" ] && [ -f "${model_dir}/config.json" ]; then
+        echo "${model} already downloaded, skipping." >&2
+    else
+        mkdir -p "${model_dir}"
+
+        local files="config.json model.safetensors"
+        echo "Downloading ${model} from HuggingFace..." >&2
+        for f in $files; do
+            if [ -f "${model_dir}/${f}" ]; then
+                echo "${f} already exists — skipping." >&2
+            else
+                echo "  Downloading ${f}..." >&2
+                curl -fSL -o "${model_dir}/${f}" "${base_url}/${f}"
+            fi
+        done
     fi
 
-    for model in Qwen3-ASR-0.6B; do
-        local model_dir="${MODELS_DIR}/${model}"
-        if [ ! -d "$model_dir" ] || [ -z "$(ls -A "$model_dir" 2>/dev/null)" ]; then
-            echo "Downloading ${model}..." >&2
-            huggingface-cli download "Qwen/${model}" --local-dir "$model_dir"
-        else
-            echo "${model} already downloaded, skipping." >&2
+    # Copy pre-built tokenizer from release assets
+    if [ -f "${model_dir}/tokenizer.json" ]; then
+        echo "tokenizer.json already exists — skipping." >&2
+    else
+        local src="${SCRIPTS_DIR}/tokenizers/tokenizer-0.6B.json"
+        if [ ! -f "$src" ]; then
+            echo "Error: Pre-built tokenizer not found at ${src}" >&2
+            exit 1
         fi
-    done
-
-    # Generate tokenizer.json files
-    echo "Generating tokenizer.json files..." >&2
-    python3 -c "
-from transformers import AutoTokenizer
-for model in ['Qwen3-ASR-0.6B']:
-    path = '${MODELS_DIR}/' + model
-    tok = AutoTokenizer.from_pretrained(path, trust_remote_code=True)
-    tok.backend_tokenizer.save(path + '/tokenizer.json')
-    print(f'Saved {path}/tokenizer.json')
-"
+        echo "Copying pre-built tokenizer..." >&2
+        cp "$src" "${model_dir}/tokenizer.json"
+    fi
 
     echo "Models installed to ${MODELS_DIR}" >&2
 }
