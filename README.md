@@ -21,17 +21,11 @@ curl -sSf https://raw.githubusercontent.com/second-state/qwen3_asr_rs/main/insta
 
 The installer will prompt you to choose a model size (0.6B recommended) and, on Linux with an NVIDIA GPU, whether to use CUDA or CPU.
 
-Once complete, run your first transcription with the command shown by the installer:
+Once complete, run your first transcription:
 
 ```bash
-# macOS
-./asr-macos-aarch64/asr asr-macos-aarch64/Qwen3-ASR-0.6B asr-macos-aarch64/sample.wav
-
-# Linux (CPU)
-./asr-linux-x86_64/asr asr-linux-x86_64/Qwen3-ASR-0.6B asr-linux-x86_64/sample.wav
-
-# Linux (CUDA)
-./asr-linux-x86_64-cuda/asr asr-linux-x86_64-cuda/Qwen3-ASR-0.6B asr-linux-x86_64-cuda/sample.wav
+cd qwen3_asr_rs
+./asr ./Qwen3-ASR-0.6B sample.wav
 ```
 
 Output:

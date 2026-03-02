@@ -5,6 +5,7 @@
 set -e
 
 REPO="second-state/qwen3_asr_rs"
+INSTALL_DIR="qwen3_asr_rs"
 SAMPLE_WAV_URL="https://github.com/${REPO}/raw/main/test_audio/sample1.wav"
 
 # libtorch download URLs
@@ -116,20 +117,21 @@ resolve_asset() {
 
 # ── 3. Download & extract release ────────────────────────────────────
 download_release() {
-    local zip_name="${ASSET_NAME}.zip"
-    local download_url="https://github.com/${REPO}/releases/latest/download/${zip_name}"
-
-    if [ -d "${ASSET_NAME}" ]; then
-        ok "${ASSET_NAME}/ already exists — skipping download."
+    if [ -d "${INSTALL_DIR}" ]; then
+        ok "${INSTALL_DIR}/ already exists — skipping download."
         return
     fi
+
+    local zip_name="${ASSET_NAME}.zip"
+    local download_url="https://github.com/${REPO}/releases/latest/download/${zip_name}"
 
     info "Downloading ${zip_name} ..."
     curl -fSL -o "${zip_name}" "${download_url}"
     info "Extracting ..."
     unzip -q "${zip_name}"
+    mv "${ASSET_NAME}" "${INSTALL_DIR}"
     rm -f "${zip_name}"
-    ok "Release extracted to ${ASSET_NAME}/"
+    ok "Release extracted to ${INSTALL_DIR}/"
 }
 
 # ── 4. Download libtorch (Linux only) ────────────────────────────────
@@ -139,7 +141,7 @@ setup_libtorch() {
         return
     fi
 
-    local libtorch_dir="${ASSET_NAME}/libtorch"
+    local libtorch_dir="${INSTALL_DIR}/libtorch"
 
     # CPU release zips bundle libtorch; CUDA release zips do not.
     if [ -d "$libtorch_dir" ] && [ -d "$libtorch_dir/lib" ]; then
@@ -204,7 +206,7 @@ choose_model() {
             ;;
     esac
 
-    MODEL_DIR="${ASSET_NAME}/${MODEL}"
+    MODEL_DIR="${INSTALL_DIR}/${MODEL}"
     info "Selected model: ${MODEL}"
 }
 
@@ -250,7 +252,7 @@ tok.backend_tokenizer.save('${MODEL_DIR}/tokenizer.json')
 
 # ── Download sample audio ────────────────────────────────────────────
 download_sample() {
-    local dest="${ASSET_NAME}/sample.wav"
+    local dest="${INSTALL_DIR}/sample.wav"
 
     if [ -f "${dest}" ]; then
         ok "sample.wav already exists — skipping."
@@ -270,11 +272,10 @@ print_usage() {
     echo -e "${GREEN}============================================${NC}"
     echo ""
 
-    local run_cmd="./${ASSET_NAME}/asr"
-
     echo "Run your first transcription:"
     echo ""
-    echo -e "  ${CYAN}${run_cmd} ${ASSET_NAME}/${MODEL} ${ASSET_NAME}/sample.wav${NC}"
+    echo -e "  ${CYAN}cd ${INSTALL_DIR}${NC}"
+    echo -e "  ${CYAN}./asr ./${MODEL} sample.wav${NC}"
     echo ""
     echo "Expected output:"
     echo ""
@@ -283,7 +284,7 @@ print_usage() {
     echo ""
     echo "To transcribe your own files:"
     echo ""
-    echo -e "  ${CYAN}${run_cmd} ${ASSET_NAME}/${MODEL} /path/to/audio.wav${NC}"
+    echo -e "  ${CYAN}./asr ./${MODEL} /path/to/audio.wav${NC}"
     echo ""
 }
 
