@@ -1,0 +1,52 @@
+FROM nvidia/cuda:12.8.0-runtime-ubuntu22.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install required dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    ca-certificates \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /root
+
+# --- Step 1: Download the prebuilt Rust CUDA binary (Linux x86_64 + CUDA 12.8) ---
+RUN curl -fSL -o asr-linux-x86_64-cuda.zip \
+    "https://github.com/second-state/qwen3_asr_rs/releases/latest/download/asr-linux-x86_64-cuda.zip" \
+    && unzip -q asr-linux-x86_64-cuda.zip \
+    && mv asr-linux-x86_64-cuda qwen3_asr_rs \
+    && rm asr-linux-x86_64-cuda.zip
+
+WORKDIR /root/qwen3_asr_rs
+
+# --- Step 2: Download libtorch CUDA 12.8 (~2.5 GB) ---
+# The CUDA binary does NOT bundle libtorch unlike the CPU build
+RUN curl -fSL --retry 5 --retry-delay 10 -o libtorch-cuda.zip \
+    "https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip" \
+    && unzip -q libtorch-cuda.zip \
+    && rm libtorch-cuda.zip
+
+# --- Step 3: Download Qwen3-ASR-0.6B model weights from HuggingFace (~1.2 GB) ---
+RUN mkdir -p Qwen3-ASR-0.6B \
+    && curl -fSL --retry 5 --retry-delay 10 -o Qwen3-ASR-0.6B/config.json \
+        "https://huggingface.co/Qwen/Qwen3-ASR-0.6B/resolve/main/config.json" \
+    && curl -fSL --retry 5 --retry-delay 10 -o Qwen3-ASR-0.6B/model.safetensors \
+        "https://huggingface.co/Qwen/Qwen3-ASR-0.6B/resolve/main/model.safetensors"
+
+# --- Step 4: Copy the pre-built tokenizer from release assets ---
+RUN cp tokenizers/tokenizer-0.6B.json Qwen3-ASR-0.6B/tokenizer.json
+
+# --- Step 5: Download sample audio ---
+RUN curl -fSL -o sample.wav \
+    "https://github.com/second-state/qwen3_asr_rs/raw/main/test_audio/sample1.wav"
+
+# Make libtorch CUDA visible to the binary
+ENV LD_LIBRARY_PATH=/root/qwen3_asr_rs/libtorch/lib:$LD_LIBRARY_PATH
+ENV LIBTORCH_BYPASS_VERSION_CHECK=1
+
+# Mount point for your own audio files
+VOLUME ["/audio"]
+
+ENTRYPOINT ["./asr", "./Qwen3-ASR-0.6B"]
+CMD ["sample.wav"]

@@ -1,0 +1,5 @@
+mlx-c/
+target/
+audio/
+.github/
+*.md

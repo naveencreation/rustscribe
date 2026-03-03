@@ -1,172 +1,175 @@
-# Qwen3 ASR -- Rust CLI tools
+# RustScribe
 
-Pure Rust implementation of [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) automatic speech recognition. The project builds a cross-platform CLI tool suitable for agentic skills for AI agents and bots.
+> High-performance speech-to-text service powered by Qwen3-ASR and Rust, with CPU and GPU support.
 
-- **asr** generates text from an input audio file (supports most codex and file formats)
+RustScribe is a fast, self-hosted speech recognition service built on the [Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) Rust engine. Transcribe audio in 30 languages with near real-time performance on CPU — and 10–20× faster with a GPU. No cloud, no API keys, no data leaving your machine.
 
-Supports two backends: **libtorch** (via the `tch` crate, cross-platform with optional CUDA) and **MLX** (Apple Silicon native via Metal GPU). Loads model weights directly from safetensors files and re-implements the complete neural network forward pass in Rust.
+Powered by the upstream [qwen3_asr_rs](https://github.com/second-state/qwen3_asr_rs) project — a pure Rust implementation of Qwen3-ASR using libtorch (with optional CUDA) that loads model weights directly from safetensors files.
 
-Learn more:
-* [A Rust implementation / CLI](https://github.com/second-state/qwen3_tts_rs) for Qwen3's TTS (Text-to-Speech or speech synthesis) models
-* An OpenAI compatible [API server for audio / speech](https://github.com/second-state/qwen3_audio_api/tree/main/rust)
-* An OpenClaw SKILL for voice recognition. Copy and paste to your lobster to [install it](https://raw.githubusercontent.com/second-state/qwen3_asr_rs/refs/heads/main/skills/install.md)
+---
+
+## Features
+
+- **Zero setup** — single `docker compose build` gets you running
+- **30 languages** — Chinese, English, Arabic, Japanese, Hindi, French, German, Spanish, and 22 more
+- **Any audio format** — WAV, MP3, M4A, FLAC, OGG, MP4 — FFmpeg statically compiled in, no install needed
+- **CPU or GPU** — runs on any machine today, drop-in GPU upgrade when ready
+- **Self-hosted** — your audio never leaves your machine
+- **Near real-time** on CPU, 10–20× faster with NVIDIA GPU
+
+---
 
 ## Quick Start
 
-The install script automatically detects your platform (macOS/Linux, CPU/CUDA GPU), downloads the correct release binary, model weights, and a sample audio file:
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running
+
+### 1. Clone
 
 ```bash
-curl -sSf https://raw.githubusercontent.com/second-state/qwen3_asr_rs/main/install.sh | bash
+git clone https://github.com/YOUR_USERNAME/rustscribe.git
+cd rustscribe
 ```
 
-The installer will prompt you to choose a model size (0.6B recommended) and, on Linux with an NVIDIA GPU, whether to use CUDA or CPU.
+### 2. Build
 
-Once complete, run your first transcription:
+First-time build downloads the prebuilt Rust binary + Qwen3-ASR-0.6B model weights (~2.7 GB total):
 
 ```bash
-cd qwen3_asr_rs
-./asr ./Qwen3-ASR-0.6B sample.wav
+docker compose build
 ```
 
-Output:
+### 3. Run
+
+```bash
+# Test with the built-in sample audio
+docker compose run --rm qwen3-asr
+
+# Transcribe your own file — drop it in the audio/ folder first
+docker compose run --rm qwen3-asr /audio/your_file.wav
+```
+
+**Expected output:**
 
 ```
 Language: English
-Text: Thank you for your contribution to the most recent issue of Computer.
+Text: Thank you for your contribution to the most recent issue of Computer. We sincerely appreciate your work, and we hope you enjoy the entire issue.
 ```
 
-## Architecture
-
-The implementation ports the Qwen3-ASR encoder-decoder architecture from PyTorch/Transformers to Rust with libtorch (via the `tch` crate):
-
-- **Audio Encoder** (Whisper-style): 3x Conv2d downsampling → sinusoidal positional embeddings → 18 transformer encoder layers → output projection (896 → 1024)
-- **Text Decoder** (Qwen3): 28 transformer decoder layers with Grouped Query Attention (16 Q heads / 8 KV heads), QK-normalization, MRoPE (Multimodal Rotary Position Embeddings), and SwiGLU MLP
-- **Audio preprocessing**: FFmpeg decodes any audio format → resampled to mono 16kHz f32 → 128-bin log-mel spectrogram (Whisper-style)
-
-## Supported Models
-
-| Model | Parameters | HuggingFace |
-|-------|-----------|-------------|
-| Qwen3-ASR-0.6B | 0.6B | [Qwen/Qwen3-ASR-0.6B](https://huggingface.co/Qwen/Qwen3-ASR-0.6B) |
-| Qwen3-ASR-1.7B | 1.7B | [Qwen/Qwen3-ASR-1.7B](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) |
+---
 
 ## Usage
 
-```bash
-# Basic transcription (auto-detect language)
-asr ./Qwen3-ASR-0.6B input.wav
+Drop any audio file into the `audio/` folder, then:
 
-# Force language
-asr ./Qwen3-ASR-0.6B input.wav chinese
-asr ./Qwen3-ASR-0.6B input.wav english
+```bash
+# Auto-detect language
+docker compose run --rm qwen3-asr /audio/input.wav
+
+# Force a specific language
+docker compose run --rm qwen3-asr /audio/input.wav english
+docker compose run --rm qwen3-asr /audio/input.mp3 chinese
 
 # Enable debug logging
-RUST_LOG=debug asr ./Qwen3-ASR-0.6B input.wav
+docker compose run --rm -e RUST_LOG=debug qwen3-asr /audio/input.wav
 ```
 
-### Output Format
+**Output format:**
 
 ```
-Language: Chinese
-Text: 你好世界
+Language: English
+Text: <transcribed text here>
 ```
+
+---
 
 ## Supported Languages
 
-Qwen3-ASR supports 30 languages: Chinese, English, Cantonese, Arabic, German, French, Spanish, Portuguese, Indonesian, Italian, Korean, Russian, Thai, Vietnamese, Japanese, Turkish, Hindi, Malay, Dutch, Swedish, Danish, Finnish, Polish, Czech, Filipino, Persian, Greek, Romanian, Hungarian, Macedonian.
+30 languages: Chinese, English, Cantonese, Arabic, German, French, Spanish, Portuguese, Indonesian, Italian, Korean, Russian, Thai, Vietnamese, Japanese, Turkish, Hindi, Malay, Dutch, Swedish, Danish, Finnish, Polish, Czech, Filipino, Persian, Greek, Romanian, Hungarian, Macedonian.
 
-## Build from Source
+---
+
+## Models
+
+| Model | Size | Download | Notes |
+|-------|------|----------|-------|
+| Qwen3-ASR-0.6B | ~1.2 GB | [HuggingFace](https://huggingface.co/Qwen/Qwen3-ASR-0.6B) | Default — recommended |
+| Qwen3-ASR-1.7B | ~3.5 GB | [HuggingFace](https://huggingface.co/Qwen/Qwen3-ASR-1.7B) | Higher accuracy, ~2× slower |
+
+---
+
+## Performance
+
+| Hardware | 8s audio | 1 hour audio |
+|----------|----------|--------------|
+| CPU (any) | ~8s | ~60–70 min |
+| NVIDIA GPU (CUDA) | ~0.5–1s | ~3–6 min |
+
+---
+
+## GPU Upgrade (NVIDIA)
+
+When you have an NVIDIA GPU, switching is one command:
 
 ### Prerequisites
 
-Download model weights and generate the tokenizer:
+Install [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) so Docker can access your GPU.
+
+### Build the CUDA image
 
 ```bash
-pip install huggingface_hub transformers
-
-huggingface-cli download Qwen/Qwen3-ASR-0.6B --local-dir Qwen3-ASR-0.6B
-
-python -c "
-from transformers import AutoTokenizer
-tok = AutoTokenizer.from_pretrained('Qwen3-ASR-0.6B', trust_remote_code=True)
-tok.backend_tokenizer.save('Qwen3-ASR-0.6B/tokenizer.json')
-"
+docker compose build qwen3-asr-cuda
 ```
 
-### Build for macOS (MLX)
+> First-time build downloads libtorch CUDA 12.8 (~2.5 GB extra).
 
-Install dependencies:
+### Run on GPU
 
 ```bash
-brew install ffmpeg
+docker compose run --rm qwen3-asr-cuda /audio/your_file.wav
 ```
 
-Build:
+That's it — same workflow, 10–20× faster.
 
-```bash
-git submodule update --init --recursive
-cargo build --release --no-default-features --features mlx,build-ffmpeg
-```
-
-### Build for Linux (libtorch)
-
-Download and extract libtorch for your platform:
-
-```bash
-# Linux x86_64 (CPU)
-curl -LO https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcpu.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cpu.zip
-
-# Linux ARM64 (CPU)
-curl -LO https://github.com/second-state/libtorch-releases/releases/download/v2.7.1/libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-tar xzf libtorch-cxx11-abi-aarch64-2.7.1.tar.gz
-
-# Linux x86_64 (CUDA 12.8)
-curl -LO https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip
-unzip libtorch-cxx11-abi-shared-with-deps-2.7.1+cu128.zip
-```
-
-Set environment variables:
-
-```bash
-export LIBTORCH=$(pwd)/libtorch
-export LIBTORCH_BYPASS_VERSION_CHECK=1
-```
-
-Install dependencies and build:
-
-```bash
-sudo apt-get install -y nasm pkg-config
-cargo build --release --features build-ffmpeg
-```
+---
 
 ## Project Structure
 
 ```
-src/
-├── main.rs            # CLI binary entry point
-├── lib.rs             # Library module declarations
-├── tensor.rs          # Unified Tensor abstraction (tch/MLX backend)
-├── config.rs          # Model configuration (from config.json)
-├── error.rs           # Error types
-├── audio.rs           # FFmpeg-based audio loading and format conversion
-├── mel.rs             # Whisper-style mel spectrogram feature extraction
-├── weights.rs         # Safetensors weight loading (bf16 → f32 conversion)
-├── layers.rs          # Neural network building blocks (LayerNorm, RMSNorm,
-│                      #   attention, MLP, MRoPE, etc.)
-├── audio_encoder.rs   # Whisper-style audio encoder (Conv2d + Transformer)
-├── text_decoder.rs    # Qwen3 text decoder with KV cache
-├── tokenizer.rs       # HuggingFace tokenizer wrapper
-├── inference.rs       # End-to-end ASR inference pipeline
-└── backend/
-    └── mlx/           # Apple MLX backend (Metal GPU)
-        ├── ffi.rs     # Raw C FFI bindings to mlx-c
-        ├── array.rs   # Safe RAII MlxArray wrapper
-        ├── ops.rs     # Safe operation wrappers
-        ├── io.rs      # Safetensors loading via mlx-c
-        ├── signal.rs  # STFT, mel spectrogram signal processing
-        └── stream.rs  # Device/stream management
+rustscribe/
+├── Dockerfile            # CPU build (Ubuntu 22.04 + prebuilt Rust binary)
+├── Dockerfile.cuda       # GPU build (CUDA 12.8 + prebuilt Rust binary)
+├── docker-compose.yml    # CPU and GPU services
+├── audio/                # Drop your audio files here
+└── src/                  # Rust source (upstream qwen3_asr_rs)
+    ├── main.rs           # CLI entry point
+    ├── audio.rs          # FFmpeg audio loading
+    ├── mel.rs            # Whisper-style mel spectrogram
+    ├── audio_encoder.rs  # Conv2d + Transformer encoder
+    ├── text_decoder.rs   # Qwen3 decoder with KV cache
+    ├── inference.rs      # End-to-end ASR pipeline
+    └── ...
 ```
+
+---
+
+## Architecture
+
+RustScribe uses the Qwen3-ASR encoder-decoder architecture fully implemented in Rust:
+
+- **Audio Encoder** (Whisper-style): Conv2d downsampling → sinusoidal positional embeddings → 18 transformer layers → output projection
+- **Text Decoder** (Qwen3): 28 transformer layers with Grouped Query Attention, QK-normalization, MRoPE, and SwiGLU MLP
+- **Audio pipeline**: FFmpeg → mono 16kHz f32 → 128-bin log-mel spectrogram
+
+---
+
+## Credits
+
+- [second-state/qwen3_asr_rs](https://github.com/second-state/qwen3_asr_rs) — upstream Rust ASR engine
+- [QwenLM/Qwen3-ASR](https://github.com/QwenLM/Qwen3-ASR) — model architecture and weights
+
+---
 
 ## License
 

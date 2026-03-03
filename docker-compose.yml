@@ -1,0 +1,39 @@
+services:
+
+  # ── CPU (current) ────────────────────────────────────────────────────────
+  qwen3-asr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: qwen3-asr-rust-cpu
+    volumes:
+      - ./audio:/audio
+    # Usage:
+    #   docker compose run --rm qwen3-asr /audio/your_file.wav
+    #   docker compose run --rm qwen3-asr /audio/your_file.wav english
+
+  # ── CUDA / NVIDIA GPU (use when you get your GPU) ────────────────────────
+  qwen3-asr-cuda:
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
+    image: qwen3-asr-rust-cuda
+    volumes:
+      - ./audio:/audio
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    # Usage:
+    #   docker compose build qwen3-asr-cuda   (first time — downloads ~4GB)
+    #   docker compose run --rm qwen3-asr-cuda /audio/your_file.wav
+
+# ─── Quick reference ─────────────────────────────────────────────────────────
+#
+#  CPU  (now):  docker compose run --rm qwen3-asr /audio/your_file.wav
+#  GPU  (soon): docker compose run --rm qwen3-asr-cuda /audio/your_file.wav
+#
+# ─────────────────────────────────────────────────────────────────────────────
