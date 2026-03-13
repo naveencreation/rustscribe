@@ -24,7 +24,7 @@ WORKDIR /root/qwen3_asr_rs
 # The CUDA binary does NOT bundle libtorch unlike the CPU build
 RUN curl -fSL --retry 5 --retry-delay 10 -o libtorch-cuda.zip \
     "https://download.pytorch.org/libtorch/cu128/libtorch-cxx11-abi-shared-with-deps-2.7.1%2Bcu128.zip" \
-    && unzip -q libtorch-cuda.zip \
+    && unzip -o -q libtorch-cuda.zip \
     && rm libtorch-cuda.zip
 
 # --- Step 3: Download Qwen3-ASR-0.6B model weights from HuggingFace (~1.2 GB) ---
